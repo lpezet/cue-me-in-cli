@@ -7,3 +7,13 @@ export type CueType = {
   updatedAt?: number;
   deletedAt?: number;
 };
+
+export type CueStateType = {
+  id: string;
+  state: string;
+  updatedAt: number;
+};
+
+export type CueStateMapType = {
+  [key: string]: CueStateType;
+};

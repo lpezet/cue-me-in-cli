@@ -11,6 +11,10 @@ import { default as CuesCreateCmd } from "./cues-create";
 import { default as CuesDeleteCmd } from "./cues-delete";
 import { default as CuesListCmd } from "./cues-list";
 import { default as CuesRunCmd } from "./cues-run";
+import {
+  Install as CronInstallCmd,
+  Uninstall as CronUninstallCmd
+} from "./cron";
 
 const logger = createLogger("commands");
 // import { any } from "async";
@@ -53,7 +57,9 @@ export async function loadAll(client: CLIClient): Promise<any> {
     .then(reg(CuesCreateCmd))
     .then(reg(CuesDeleteCmd))
     .then(reg(CuesListCmd))
-    .then(reg(CuesRunCmd));
+    .then(reg(CuesRunCmd))
+    .then(reg(CronInstallCmd))
+    .then(reg(CronUninstallCmd));
 }
 
 /**

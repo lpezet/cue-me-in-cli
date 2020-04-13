@@ -11,13 +11,22 @@ import * as program from "commander";
 
 const args = process.argv.slice(2);
 
-const logFilename = path.join(process.cwd(), "/cue-me-in-debug.log");
+const logFilename = path.join(
+  path.resolve(__dirname, "../../"),
+  "cue-me-in.log"
+);
+// const logFilename = path.join("/var/log/", "/cue-me-in.log");
 const debugging = _.includes(args, "--debug");
 const logLevel = process.env.DEBUG || debugging ? "debug" : "info";
 
 configureLogger({
   appenders: {
-    file: { type: "file", filename: logFilename },
+    file: {
+      type: "file",
+      filename: logFilename,
+      maxLogSize: 20971520,
+      backups: 3
+    },
     console: { type: "console", layout: { type: "messagePassThrough" } }
   },
   categories: { default: { appenders: ["file", "console"], level: logLevel } }
