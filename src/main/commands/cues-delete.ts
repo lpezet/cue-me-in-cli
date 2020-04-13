@@ -37,7 +37,6 @@ export default new Command("cues:delete")
       // eslint-disable-next-line no-invalid-this
       // console.log("this = " + this);
       // if (!me.client) throw new Error("Command not registered with client.");
-      console.log("cue:delete called!");
     } catch (err) {
       logger.error(err);
       console.log(err);
