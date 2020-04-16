@@ -8,7 +8,8 @@ import { AdvancedLogger } from "../advanced-logger";
 
 const logger = new AdvancedLogger(createLogger("login"));
 
-import { login } from "../core/auth";
+// import { login } from "../core/auth";
+import { login } from "../core/auth2";
 
 export default new Command("login")
   .description("log the CLI into CueMeIn")

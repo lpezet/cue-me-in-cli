@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cue-Me-In CLI Sign In</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+      crossorigin="anonymous"
+    />
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.css"
+    />
+
+    <link type="text/css" rel="stylesheet" href="base.css" />
+  </head>
+  <bodyc class="text-center">
+    <div id="loginCard" class="card text-center">
+      <div class="card-header">
+        Cue-Me-In CLI Sign Out
+      </div>
+      <div class="card-body">
+        <div id="loginSection">
+            <img id="loader" src="img/Loading.svg" />
+            <div id="successMessage" style="display:none;">
+                <h5 class="card-title">You are logged out!</h5>
+                <p class="card-text">Thank you for using Cue-Me-In Command-Line interface!</p>
+        
+            </div>
+              <p id="failureMessage" style="display:none;" class="card-text">
+                Error signing out. Should be fine...it's just signing out really, don't worry about it.
+              </p>
+        </div>
+        <!--
+        <h5 class="card-title">Special title treatment</h5>
+        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+        <a href="#" class="btn btn-primary">Go somewhere</a>
+        -->
+      </div>
+      <div class="card-footer text-muted">
+        &copy; Cue-Me-In
+      </div>
+    </div>
+
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+      integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+      integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+      crossorigin="anonymous"
+    ></script>
+
+    <script src="https://cdn.firebase.com/libs/firebaseui/3.5.2/firebaseui.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.4.0/firebase.js"></script>
+    <script src="config.js"></script>
+    <script src="common.js"></script>
+
+    <script type="text/javascript">
+      function toggle(id) {
+        var x = document.getElementById(id);
+        if (x.style.display === "none") {
+          x.style.display = "block";
+        } else {
+          x.style.display = "none";
+        }
+      }
+    </script>
+    <script type="text/javascript">
+            
+        var redirectToLocalServer = function() {
+            var xhr = new XMLHttpRequest();
+            //var url = "http://localhost:8081/logout";
+            var url = "http://localhost:${CALLBACKSERVER_PORT}/logout";
+            xhr.open("GET", url, true);
+            //xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send();
+        };
+        firebase.auth().signOut().then(function() {
+            redirectToLocalServer();
+            toggle("loader");
+            toggle("successMessage");
+        }).catch(function(error) {
+            toggle("loader");
+            toggle("failureMessage");
+        });
+      
+    </script>
+  </body>
+</html>
