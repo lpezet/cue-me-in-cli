@@ -5,20 +5,29 @@ import * as utils from "../utils";
 import { prompt } from "../prompt";
 import { createLogger } from "../logger";
 import { AdvancedLogger } from "../advanced-logger";
+import { hasValidAccessToken, refreshAccessToken } from "../core/auth2";
 
 const logger = new AdvancedLogger(createLogger("login"));
 
 // import { login } from "../core/auth";
 import { login } from "../core/auth2";
 
+type CommandOptions = {
+  reauth?: boolean;
+  refresh?: boolean;
+  nonInteractive?: boolean;
+  collectUsage?: boolean;
+};
+
 export default new Command("login")
   .description("log the CLI into CueMeIn")
-  .option(
-    "--no-localhost",
-    "copy and paste a code instead of starting a local server for authentication"
-  )
+  // .option(
+  //  "--no-localhost",
+  //  "copy and paste a code instead of starting a local server for authentication"
+  // )
   .option("--reauth", "force reauthentication even if already logged in")
-  .action(function(_me: Command, options) {
+  .option("--refresh", "refresh tokens, if possible")
+  .action(function(_me: Command, options: CommandOptions) {
     if (options.nonInteractive) {
       return utils.reject(
         "Cannot run login in non-interactive mode. See " +
@@ -29,13 +38,42 @@ export default new Command("login")
     }
     try {
       const user = configstore.get("user");
-      const tokens = configstore.get("tokens");
+      const validAccessoken = hasValidAccessToken();
 
-      if (user && tokens && !options.reauth) {
+      if (logger.isDebugEnabled()) {
+        logger.debug(
+          "user? %s, validAccessToken? %s, reauth? %s",
+          user != null,
+          validAccessoken,
+          options.reauth
+        );
+      }
+      if (options.refresh) {
+        return refreshAccessToken()
+          .then(
+            () => {
+              logger.logSuccess("Tokens successfully refreshed.");
+            },
+            (err: Error) => {
+              logger.logWarning(
+                "Something happened while refreshing tokens. Re-login by running `cue-me-in login --reauth` instead."
+              );
+              logger.error(err);
+            }
+          )
+          .catch((err: Error) => {
+            logger.logWarning(
+              "Something happened while refreshing tokens. Re-login by running `cue-me-in login --reauth` instead."
+            );
+            logger.error(err);
+          });
+      }
+      if (user && validAccessoken && !options.reauth) {
         logger.logSuccess("Already logged in as " + clc.bold(user.email));
         return Promise.resolve(user);
       }
     } catch (err) {
+      logger.error("Unexpected error checking current login status.", err);
       console.log(err);
     }
 
@@ -59,7 +97,7 @@ export default new Command("login")
             "To change your data collection preference at any time, run `cue-me-in logout` and log in again."
           );
         }
-        return login(options.localhost);
+        return login();
       })
       .then(function(result: any) {
         configstore.set("user", result.user);
