@@ -7,15 +7,15 @@ import { CueMeInError } from "../error";
 import { createLogger } from "../logger";
 import { responseToError } from "./response-to-error";
 import { Scopes } from "./scopes";
-import * as utils from "../utils";
+// import * as utils from "../utils";
 import { Url } from "url";
+import { Tokens, getAccessToken as auth2GetAccessToken } from "./auth2";
 
 const logger = createLogger("api");
 
 const CLI_VERSION = require("../../../package.json").version;
 
 let accessToken: string;
-let refreshToken: string;
 let commandScopes: string[];
 
 export interface LogOptions {
@@ -131,140 +131,16 @@ const _appendQueryData = function(path: string, data: {}): string {
 };
 
 export const api = {
-  // "In this context, the client secret is obviously not treated as a secret"
-  // https://developers.google.com/identity/protocols/OAuth2InstalledApp
-  clientId: utils.envOverride(
-    "FIREBASE_CLIENT_ID",
-    "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"
-  ),
-  clientSecret: utils.envOverride(
-    "FIREBASE_CLIENT_SECRET",
-    "j9iVZfS8kkCEFUPaAeJV0sAi"
-  ),
-  cloudbillingOrigin: utils.envOverride(
-    "FIREBASE_CLOUDBILLING_URL",
-    "https://cloudbilling.googleapis.com"
-  ),
-  cloudloggingOrigin: utils.envOverride(
-    "FIREBASE_CLOUDLOGGING_URL",
-    "https://logging.googleapis.com"
-  ),
-  adminOrigin: utils.envOverride(
-    "FIREBASE_ADMIN_URL",
-    "https://admin.firebase.com"
-  ),
-  appDistributionOrigin: utils.envOverride(
-    "FIREBASE_APP_DISTRIBUTION_URL",
-    "https://firebaseappdistribution.googleapis.com"
-  ),
-  appDistributionUploadOrigin: utils.envOverride(
-    "FIREBASE_APP_DISTRIBUTION_UPLOAD_URL",
-    "https://appdistribution-uploads.crashlytics.com"
-  ),
-  appengineOrigin: utils.envOverride(
-    "FIREBASE_APPENGINE_URL",
-    "https://appengine.googleapis.com"
-  ),
-  authOrigin: utils.envOverride(
-    "FIREBASE_AUTH_URL",
-    "https://accounts.google.com"
-  ),
-  consoleOrigin: utils.envOverride(
-    "FIREBASE_CONSOLE_URL",
-    "https://console.firebase.google.com"
-  ),
-  deployOrigin: utils.envOverride(
-    "FIREBASE_DEPLOY_URL",
-    utils.envOverride("FIREBASE_UPLOAD_URL", "https://deploy.firebase.com")
-  ),
-  firebaseApiOrigin: utils.envOverride(
-    "FIREBASE_API_URL",
-    "https://firebase.googleapis.com"
-  ),
-  firebaseExtensionsRegistryOrigin: utils.envOverride(
-    "FIREBASE_EXT_REGISTRY_ORIGIN",
-    "https://extensions-registry.firebaseapp.com"
-  ),
-  firedataOrigin: utils.envOverride(
-    "FIREBASE_FIREDATA_URL",
-    "https://mobilesdk-pa.googleapis.com"
-  ),
-  firestoreOrigin: utils.envOverride(
-    "FIRESTORE_URL",
-    "https://firestore.googleapis.com"
-  ),
-  functionsOrigin: utils.envOverride(
-    "FIREBASE_FUNCTIONS_URL",
-    "https://cloudfunctions.googleapis.com"
-  ),
-  cloudschedulerOrigin: utils.envOverride(
-    "FIREBASE_CLOUDSCHEDULER_URL",
-    "https://cloudscheduler.googleapis.com"
-  ),
-  pubsubOrigin: utils.envOverride(
-    "FIREBASE_PUBSUB_URL",
-    "https://pubsub.googleapis.com"
-  ),
-  googleOrigin: utils.envOverride(
-    "FIREBASE_TOKEN_URL",
-    utils.envOverride("FIREBASE_GOOGLE_URL", "https://www.googleapis.com")
-  ),
-  hostingOrigin: utils.envOverride(
-    "FIREBASE_HOSTING_URL",
-    "https://firebaseapp.com"
-  ),
-  iamOrigin: utils.envOverride(
-    "FIREBASE_IAM_URL",
-    "https://iam.googleapis.com"
-  ),
-  extensionsOrigin: utils.envOverride(
-    "FIREBASE_EXT_URL",
-    "https://firebaseextensions.googleapis.com"
-  ),
-  realtimeOrigin: utils.envOverride(
-    "FIREBASE_REALTIME_URL",
-    "https://firebaseio.com"
-  ),
-  rtdbMetadataOrigin: utils.envOverride(
-    "FIREBASE_RTDB_METADATA_URL",
-    "https://metadata-dot-firebase-prod.appspot.com"
-  ),
-  resourceManagerOrigin: utils.envOverride(
-    "FIREBASE_RESOURCEMANAGER_URL",
-    "https://cloudresourcemanager.googleapis.com"
-  ),
-  rulesOrigin: utils.envOverride(
-    "FIREBASE_RULES_URL",
-    "https://firebaserules.googleapis.com"
-  ),
-  runtimeconfigOrigin: utils.envOverride(
-    "FIREBASE_RUNTIMECONFIG_URL",
-    "https://runtimeconfig.googleapis.com"
-  ),
-  storageOrigin: utils.envOverride(
-    "FIREBASE_STORAGE_URL",
-    "https://storage.googleapis.com"
-  ),
-  firebaseStorageOrigin: utils.envOverride(
-    "FIREBASE_FIREBASESTORAGE_URL",
-    "https://firebasestorage.googleapis.com"
-  ),
-  hostingApiOrigin: utils.envOverride(
-    "FIREBASE_HOSTING_API_URL",
-    "https://firebasehosting.googleapis.com"
-  ),
-  cloudRunApiOrigin: utils.envOverride(
-    "CLOUD_RUN_API_URL",
-    "https://run.googleapis.com"
-  ),
-  serviceUsageOrigin: utils.envOverride(
-    "FIREBASE_SERVICE_USAGE_URL",
-    "https://serviceusage.googleapis.com"
-  ),
-
-  setRefreshToken: function(token: string): void {
-    refreshToken = token;
-  },
+  firestoreOrigin: "https://firestore.googleapis.com/v1beta1",
+  secureTokenGoogleApisOrigin: "https://securetoken.googleapis.com",
+  webApiKey: "AIzaSyB8OVCjMYelcfFBrLjSwEQak9qDcqyXsLw",
+  projectId: "cue-me-in",
+  clientId:
+    "413727118845-f8dp1btfkm8fudgdbcnecgcc4qldm269.apps.googleusercontent.com",
+  // "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com",
+  // setRefreshToken: function(token: string): void {
+  //  refreshToken = token;
+  // },
   setAccessToken: function(token: string): void {
     accessToken = token;
   },
@@ -288,15 +164,22 @@ export const api = {
     return accessToken
       ? // eslint-disable-next-line @typescript-eslint/camelcase
         Promise.resolve({ access_token: accessToken })
-      : require("./auth").getAccessToken(refreshToken, commandScopes);
+      : auth2GetAccessToken(commandScopes).then((tokens: Tokens) => {
+          if (tokens.access_token == null) {
+            return Promise.reject(new Error("Couldn't get access token."));
+          }
+          return Promise.resolve({ access_token: tokens.access_token || "" });
+        });
   },
-  addRequestHeaders: function(reqOptions: RequestOptions) {
+  addRequestHeaders: function(
+    reqOptions: RequestOptions
+  ): Promise<RequestOptions> {
     // Runtime fetch of Auth singleton to prevent circular module dependencies
-    _.set(reqOptions, ["headers", "User-Agent"], "FirebaseCLI/" + CLI_VERSION);
+    _.set(reqOptions, ["headers", "User-Agent"], "CueMeInCLI/" + CLI_VERSION);
     _.set(
       reqOptions,
       ["headers", "X-Client-Version"],
-      "FirebaseCLI/" + CLI_VERSION
+      "CueMeInCLI/" + CLI_VERSION
     );
     return (
       api
@@ -321,7 +204,7 @@ export const api = {
     options = _.extend(
       {
         data: {},
-        origin: api.adminOrigin, // default to hitting the admin backend
+        // origin: api.adminOrigin, // default to hitting the admin backend
         resolveOnHTTPError: false, // by default, status codes >= 400 leads to reject
         json: true
       },
@@ -402,38 +285,5 @@ export const api = {
       }
       return Promise.reject(err);
     });
-  },
-
-  /**
-   * Deprecated. Call `listFirebaseProjects()` from `./management/project.ts` instead
-   * TODO: remove this function
-   * @return Promise<string>
-   */
-  getProjects: function(): Promise<string> {
-    logger.debug(
-      `[WARNING] ${
-        new Error("getProjects() is deprecated - update the implementation")
-          .stack
-      }`
-    );
-    return api
-      .request("GET", "/v1/projects" /* {
-        auth: true
-      }*/)
-      .then(function(res: APIResponse): Promise<any> {
-        if (res.body && res.body.projects) {
-          return Promise.resolve(res.body.projects);
-        }
-
-        return Promise.reject(
-          new CueMeInError(
-            "Server Error: Unexpected Response. Please try again",
-            {
-              context: res,
-              exit: 2
-            }
-          )
-        );
-      });
   }
 };
