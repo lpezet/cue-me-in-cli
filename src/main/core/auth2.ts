@@ -1,50 +1,38 @@
+import * as _ from "lodash";
 import * as portfinder from "portfinder";
 import * as opn from "open";
+import * as clc from "cli-color";
+
 // import * as nodeStatic from "node-static";
 import { configstore } from "../configstore";
-import { createLogger } from "../logger";
+import { CueMeInError } from "../error";
 import * as http from "http";
 import * as express from "express";
 import * as mustacheExpress from "mustache-express";
 import * as path from "path";
+import { APIResponse, api } from "./api";
+import { createLogger } from "../logger";
+import { AdvancedLogger } from "../advanced-logger";
+import { Spinner } from "cli-spinner";
 
-const logger = createLogger("auth");
-// const fileServer = new nodeStatic.Server("./templates");
+const logger = new AdvancedLogger(createLogger("auth"));
 
-// TODO:
-// Use Express:
-// https://expressjs.com/en/4x/api.html#app.listen
-// Reason: so we can add variables maybe, like: {{ port }}
-/*
-var express = require('express')
-var https = require('https')
-var http = require('http')
-var app = express()
+const FIFTEEN_MINUTES_IN_MS = 15 * 60 * 1000;
 
-http.createServer(app).listen(80)
-https.createServer(options, app).listen(443)
+const INVALID_CREDENTIAL_ERROR = new CueMeInError(
+  "Authentication Error: Your credentials are no longer valid. Please run " +
+    clc.bold("cue-me-in login --reauth") +
+    "\n\n" +
+    "For CI servers and headless environments, generate a new token with " +
+    clc.bold("cue-me-in login:ci"),
+  { exit: 1 }
+);
 
-
-
-
-
-
-var bodyParser = require('body-parser');
-var express = require('express');
-var app = express();
-
-app.use(express.static(__dirname + '/'));
-app.use(bodyParser.urlencoded({extend:true}));
-app.engine('html', require('ejs').renderFile);
-app.set('view engine', 'html');
-app.set('views', __dirname);
-
-app.get('/', function(req, res){
-    res.render('index.html',{email:data.email,password:data.password});
-});
-*/
-
-// const FIFTEEN_MINUTES_IN_MS = 15 * 60 * 1000;
+const DEFAULT_SCOPES = [
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
+  "openid"
+];
 
 // Below we get the Id Token.
 // To get an access token:
@@ -78,9 +66,10 @@ interface Tokens {
 }
 
 interface UserTokens {
-  tokens: Tokens;
-  user: any;
-  scopes: string[];
+  tokens?: Tokens;
+  user?: User;
+  scopes?: string[];
+  raw?: any;
 }
 
 type StsTokenManager = {
@@ -150,117 +139,15 @@ const open = function(url: string): void {
 
 const getPort = portfinder.getPortPromise;
 
-/*
-TODO
-
-
 // in-memory cache, so we have it for successive calls
-let lastTokens: Tokens;
-
-
-const getTokens = function(
-  refreshToken: string,
-  authScopes: string[]
-): Promise<Tokens> {
-  if (_haveValidAccessToken(refreshToken, authScopes)) {
-    return Promise.resolve(lastTokens);
+let _lastTokens: Tokens;
+const getOrLoadTokens = () => {
+  if (_lastTokens == null) {
+    _lastTokens = configstore.get("tokens");
   }
-
-  return _refreshAccessToken(refreshToken, authScopes);
+  return _lastTokens || {};
 };
 
-const _haveValidAccessToken = function(
-  refreshToken: string,
-  authScopes: string[]
-): boolean {
-  if (_.isEmpty(lastTokens)) {
-    const tokens: Tokens = configstore.get("tokens");
-    if (refreshToken === _.get(tokens, "refresh_token")) {
-      lastTokens = tokens;
-    }
-  }
-  const lastRt: string = lastTokens.refresh_token || "";
-  const lastEa: number = lastTokens.expires_at || 0;
-  const lastScopes: string[] = lastTokens.scopes || [];
-  return (
-    _.has(lastTokens, "access_token") &&
-    lastRt === refreshToken &&
-    _.isEqual(authScopes.sort(), (lastScopes || []).sort()) &&
-    lastEa > Date.now() + FIFTEEN_MINUTES_IN_MS
-  );
-};
-
-
-
-const _refreshAccessToken = function(
-  refreshToken: string,
-  authScopes: string[]
-): Promise<Tokens> {
-  logger.debug(
-    "> refreshing access token with scopes:",
-    JSON.stringify(authScopes)
-  );
-  return api
-    .request("POST", "/oauth2/v3/token", {
-      origin: api.googleOrigin,
-      form: {
-        refresh_token: refreshToken,
-        client_id: api.clientId,
-        client_secret: api.clientSecret,
-        grant_type: "refresh_token",
-        scope: (authScopes || []).join(" ")
-      },
-      logOptions: {
-        skipRequestBody: true,
-        skipQueryParams: true,
-        skipResponseBody: true
-      }
-    })
-    .then(
-      function(res: APIResponse) {
-        if (res.status === 401 || res.status === 400) {
-          return Promise.resolve({ access_token: refreshToken });
-        }
-
-        if (!_.isString(res.body.access_token)) {
-          throw INVALID_CREDENTIAL_ERROR;
-        }
-        lastAccessToken = _.assign(
-          {
-            expires_at: Date.now() + res.body.expires_in * 1000,
-            refresh_token: refreshToken,
-            scopes: authScopes
-          },
-          res.body
-        );
-
-        const currentRefreshToken = _.get(
-          configstore.get("tokens"),
-          "refresh_token"
-        );
-        if (refreshToken === currentRefreshToken) {
-          configstore.set("tokens", lastAccessToken);
-        }
-
-        return Promise.resolve(lastAccessToken);
-      },
-      function(err) {
-        if (_.get(err, "context.body.error") === "invalid_scope") {
-          throw new CueMeInError(
-            "This command requires new authorization scopes not granted to your current session. Please run " +
-              clc.bold("cue-me-in login --reauth") +
-              "\n\n" +
-              "For CI servers and headless environments, generate a new token with " +
-              clc.bold("cue-me-in login:ci"),
-            { exit: 1 }
-          );
-        }
-
-        throw INVALID_CREDENTIAL_ERROR;
-      }
-    );
-};
-*/
 // refreshToken: string
 const _logoutCurrentSession = function(): void {
   // const tokens = configstore.get("tokens");
@@ -291,9 +178,9 @@ const createCallbackServer = (port: number): Promise<UserType | null> => {
         }
 
         const { method, url } = req;
-        console.log("## Request url: " + url);
-        console.log("## Request method: " + method);
-
+        if (logger.isDebugEnabled()) {
+          logger.debug("Callback server received request: %s %s", method, url);
+        }
         const body: any[] = [];
         req
           .on("error", err => {
@@ -304,28 +191,41 @@ const createCallbackServer = (port: number): Promise<UserType | null> => {
             body.push(chunk);
           })
           .on("end", () => {
-            const payload = Buffer.concat(body).toString();
             let userInfo: UserType | null = null;
+            let spinner: Spinner;
+            const payload = Buffer.concat(body).toString();
             if (url === "/login") {
-              console.log("## Logging in. Should have some token info!");
-              console.log("## IdToken??", payload);
+              if (logger.isDebugEnabled()) {
+                logger.debug("Received login request. Payload:\n%s", payload);
+              }
               userInfo = JSON.parse(payload);
+              spinner = new Spinner();
+              spinner.setSpinnerString(17);
+              spinner.start();
             } else if (url === "/logout") {
-              console.log("## Logging out!!!");
+              if (logger.isDebugEnabled()) {
+                logger.debug("Received logout request.");
+              }
             }
             res.statusCode = 200;
             // const responseBody = { headers, method, url, body };
             res.write("Ok");
             res.end();
-
-            server.close(() => resolve(userInfo));
+            logger.logBullet("Finalyzing login...please wait...");
+            server.close(() => {
+              if (spinner != null) spinner.stop(true);
+              resolve(userInfo);
+            });
           });
       })
       .listen(port);
   });
 };
 
-const createLoginServer = (port: number, callbackServerPort: number) => {
+const createLoginServer = (
+  port: number,
+  callbackServerPort: number
+): http.Server => {
   const app = express();
   // app.use(bodyParser.urlencoded({ extend: true }));
   app.engine("html", mustacheExpress()); // require("ejs").renderFile);
@@ -333,7 +233,6 @@ const createLoginServer = (port: number, callbackServerPort: number) => {
   app.set("views", path.join(__dirname, "./templates"));
 
   app.get("/login.html", function(_req, res) {
-    console.log("## Rendering login.html!!!!");
     res.render("login.html", { callbackServerPort: callbackServerPort });
   });
   app.use(express.static(path.join(__dirname, "./templates")));
@@ -341,63 +240,7 @@ const createLoginServer = (port: number, callbackServerPort: number) => {
     open(`http://localhost:${port}/login.html`);
   });
 };
-/*
-const createLoginServer = (port: number): http.Server => {
-  return http
-    .createServer(function(request, response) {
-      request
-        .addListener("end", function() {
-          //
-          // Serve files!
-          //
-          console.log("Login Server...");
-          // console.dir(request);
-          fileServer.serve(request, response);
-        })
-        .resume();
-    })
-    .listen(port, () => {
-      open(`http://localhost:${port}/login.html`);
-    });
-};
-*/
 
-const createLogoutServer = (port: number, callbackServerPort: number) => {
-  const app = express();
-  // app.use(bodyParser.urlencoded({ extend: true }));
-  app.engine("html", mustacheExpress()); // require("ejs").renderFile);
-  app.set("view engine", "html");
-  app.set("views", path.join(__dirname, "./templates"));
-
-  app.get("/logout.html", function(_req, res) {
-    console.log("## Rendering logout.html!!!!");
-    res.render("login.html", { callbackServerPort: callbackServerPort });
-  });
-  app.use(express.static(path.join(__dirname, "./templates")));
-  return http.createServer(app).listen(port, () => {
-    open(`http://localhost:${port}/logout.html`);
-  });
-};
-/*
-const createLogoutServer = (port: number): http.Server => {
-  return http
-    .createServer(function(request, response) {
-      request
-        .addListener("end", function() {
-          //
-          // Serve files!
-          //
-          console.log("Logout Server...");
-          // console.dir(request);
-          fileServer.serve(request, response);
-        })
-        .resume();
-    })
-    .listen(port, () => {
-      open(`http://localhost:${port}/logout.html`);
-    });
-};
-*/
 const get2Ports = function(): Promise<number[]> {
   const ports: number[] = [];
   return getPort()
@@ -411,12 +254,14 @@ const get2Ports = function(): Promise<number[]> {
     });
 };
 
-const login = function(_localhost = true): Promise<UserTokens> {
+const login = function(): Promise<UserTokens> {
   // if (localhost) {
   return new Promise(function(resolve, reject) {
     get2Ports().then(
       (ports: number[]) => {
-        console.log("Ports = " + ports);
+        if (logger.isDebugEnabled()) {
+          logger.debug("ports for authentication: {}", ports);
+        }
         const loginServer = createLoginServer(ports[0], ports[1]);
         return createCallbackServer(ports[1]).then(
           (userInfo: UserType | null) => {
@@ -436,7 +281,8 @@ const login = function(_localhost = true): Promise<UserTokens> {
                     " "
                   ) || [],
                 tokens: tokens,
-                user: userInfo?.user
+                user: userInfo?.user,
+                raw: userInfo
               };
               resolve(userTokens);
             });
@@ -456,12 +302,147 @@ const login = function(_localhost = true): Promise<UserTokens> {
 // TODO: gotta close server after logout...
 const logout = function(): Promise<void> {
   _logoutCurrentSession();
+  return Promise.resolve();
+  /*
   return get2Ports().then((ports: number[]) => {
     const logoutServer = createLogoutServer(ports[0], ports[1]);
     return createCallbackServer(ports[1]).then(() => {
       logoutServer.close();
     });
   });
+  */
 };
 
-export { login, logout };
+const hasValidAccessToken = function(authScopes?: string[]): boolean {
+  if (_.isEmpty(_lastTokens)) {
+    const tokens: Tokens = configstore.get("tokens");
+    // Luke: Why?
+    // if (refreshToken === _.get(tokens, "refresh_token")) {
+    _lastTokens = tokens;
+    // }
+  }
+  // const lastRt: string = lastTokens.refresh_token || "";
+  const lastEa: number = _lastTokens.expires_at || 0;
+  const lastScopes: string[] = _lastTokens.scopes || [];
+  return (
+    _.has(_lastTokens, "access_token") &&
+    // lastRt === refreshToken &&
+    (authScopes == null ||
+      _.isEqual(authScopes.sort(), (lastScopes || []).sort())) &&
+    lastEa > Date.now() + FIFTEEN_MINUTES_IN_MS
+  );
+};
+
+const refreshAccessToken = function(
+  refreshToken?: string,
+  authScopes?: string[]
+): Promise<Tokens> {
+  // return Promise.reject(new Error("Not yet supported!"));
+  /*
+  https://developers.google.com/identity/toolkit/securetoken
+
+  POST /v1/token HTTP/1.1
+Host: securetoken.googleapis.com
+Content-Type: application/x-www-form-urlencoded
+ 
+refresh_token=refresh_token&grant_type=refresh_token
+  */
+  refreshToken = refreshToken || getOrLoadTokens().refresh_token || "";
+  authScopes = authScopes || DEFAULT_SCOPES;
+  return api
+    .request("POST", "/v1/token", {
+      query: {
+        key: api.webApiKey
+      },
+      origin: api.secureTokenGoogleApisOrigin,
+      json: true,
+      form: {
+        refresh_token: refreshToken,
+        // client_id: api.clientId,
+        // client_secret: api.clientSecret,
+        grant_type: "refresh_token"
+        // scope: (authScopes || []).join(" ")
+      },
+      logOptions: {
+        skipRequestBody: false,
+        skipQueryParams: false,
+        skipResponseBody: false
+      }
+    })
+    .then(
+      function(res: APIResponse) {
+        if (res.status === 401 || res.status === 400) {
+          return Promise.resolve({ access_token: refreshToken });
+        }
+
+        if (!_.isString(res.body.access_token)) {
+          throw INVALID_CREDENTIAL_ERROR;
+        }
+        _lastTokens = _.assign(
+          {
+            expires_at: Date.now() + res.body.expires_in * 1000,
+            refresh_token: refreshToken,
+            scopes: authScopes
+          },
+          res.body
+        );
+
+        const currentRefreshToken = _.get(
+          configstore.get("tokens"),
+          "refresh_token"
+        );
+        if (refreshToken === currentRefreshToken) {
+          if (logger.isDebugEnabled()) {
+            logger.debug("Got new tokens. Resetting tokens from store...");
+          }
+          configstore.set("tokens", _lastTokens);
+        } else {
+          logger.warn(
+            "New refresh token not matching stored refresh token. NOT resetting tokens from store."
+          );
+        }
+
+        return Promise.resolve(_lastTokens);
+      },
+      function(err) {
+        logger.error("Unexpected error refreshing tokens.", err);
+        if (_.get(err, "context.body.error") === "invalid_scope") {
+          throw new CueMeInError(
+            "This command requires new authorization scopes not granted to your current session. Please run " +
+              clc.bold("cue-me-in login --reauth") +
+              "\n\n" +
+              "For CI servers and headless environments, generate a new token with " +
+              clc.bold("cue-me-in login:ci"),
+            { exit: 1 }
+          );
+        }
+        throw INVALID_CREDENTIAL_ERROR;
+      }
+    );
+};
+
+const getAccessToken = function(authScopes?: string[]): Promise<Tokens> {
+  const refreshToken = getOrLoadTokens().refresh_token || "";
+  if (hasValidAccessToken(authScopes)) {
+    return Promise.resolve(_lastTokens);
+  }
+  authScopes = authScopes || DEFAULT_SCOPES;
+  return refreshAccessToken(refreshToken, authScopes);
+};
+
+export {
+  login,
+  logout,
+  getAccessToken,
+  hasValidAccessToken,
+  refreshAccessToken,
+  User,
+  UserTokens,
+  UserType,
+  UserProfile,
+  UserCredential,
+  UserAdditionalInfo,
+  StsTokenManager,
+  ProviderData,
+  Tokens
+};
