@@ -13,10 +13,12 @@ const logger = new AdvancedLogger(createLogger("cues:create"));
 type CommandOptions = {
   what: string;
   how: string;
+  name?: string;
 };
 
 export default new Command("cues:create")
   .description("create cue")
+  .option("-n, --name <name>", "friendly name for this cue")
   .requiredOption("-w, --what <what>", "what to monitor")
   .requiredOption("-h, --how <how>", "how to monitor changes")
   .action(function(_me: Command, options: CommandOptions) {
@@ -30,6 +32,7 @@ export default new Command("cues:create")
         id: uuidv4(),
         what: options.what,
         how: options.how,
+        name: options.name,
         deleted: false,
         createdAt: new Date().getTime()
       };
