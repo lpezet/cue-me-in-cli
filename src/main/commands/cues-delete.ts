@@ -1,8 +1,8 @@
 import { Command } from "../command";
 // import * as clc from "cli-color";
-import { createLogger } from "../logger";
 import { configstore } from "../configstore";
 import { CueType } from "./cues";
+import { createLogger } from "../logger";
 import { AdvancedLogger } from "../advanced-logger";
 
 const logger = new AdvancedLogger(createLogger("cues:delete"));
