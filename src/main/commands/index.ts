@@ -15,6 +15,7 @@ import {
   Install as CronInstallCmd,
   Uninstall as CronUninstallCmd
 } from "./cron";
+import { default as StatusCmd } from "./status";
 
 const logger = createLogger("commands");
 // import { any } from "async";
@@ -59,7 +60,8 @@ export async function loadAll(client: CLIClient): Promise<any> {
     .then(reg(CuesListCmd))
     .then(reg(CuesRunCmd))
     .then(reg(CronInstallCmd))
-    .then(reg(CronUninstallCmd));
+    .then(reg(CronUninstallCmd))
+    .then(reg(StatusCmd));
 }
 
 /**
