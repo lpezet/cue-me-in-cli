@@ -131,6 +131,7 @@ const _appendQueryData = function(path: string, data: {}): string {
 };
 
 export const api = {
+  firebaseCloudMessagingOrigin: "https://fcm.googleapis.com/v1",
   firestoreOrigin: "https://firestore.googleapis.com/v1beta1",
   secureTokenGoogleApisOrigin: "https://securetoken.googleapis.com",
   webApiKey: "AIzaSyB8OVCjMYelcfFBrLjSwEQak9qDcqyXsLw",
