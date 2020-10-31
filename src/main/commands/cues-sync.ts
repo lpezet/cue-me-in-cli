@@ -15,11 +15,16 @@ type CommandOptions = {
 
 type CueWithStateType = CueType & { state: CueStateType };
 
-export default new Command("cues:list")
-  .description("list cues")
-  .option("-s, --state", "display state of cues")
+export default new Command("cues:sync")
+  .description("Sync up cues with cloud")
+  // .option("-s, --state", "display state of cues")
   .action(function(_me: Command, options: CommandOptions) {
     try {
+      // TODO: must check first if user is logged in. If not, print message to login and quit.
+      // TODO: might have to merge between cloud and local.
+      // TODO: in case of conflict, maybe tell user to resolve conflict by passing option to command.
+      // TODO: something like: --use-local or --use-remote
+
       const cues: CueType[] = configstore.get("cues") || [];
       let results: any;
       if (options.state) {

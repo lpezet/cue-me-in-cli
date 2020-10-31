@@ -5,6 +5,7 @@ import { configstore } from "../configstore";
 import { CueType } from "./cues";
 import { AdvancedLogger } from "../advanced-logger";
 import { CMI, CMIClass, TransformMod, hashToHex } from "@lpezet/cue-me-in";
+import { sendNotifications } from "../core/notification";
 
 const logger = new AdvancedLogger(createLogger("cues:delete"));
 
@@ -54,8 +55,16 @@ type CueStateMapType = {
   [key: string]: CueStateType;
 };
 
+type CueMapType = {
+  [key: string]: CueType;
+};
+
 const run = function(cues: CueType[]): Promise<void> {
   const cuesStates: CueStateMapType = configstore.get("cues_states") || [];
+  const cuesMap = cues.reduce(function(map: CueMapType, cue: CueType) {
+    map[cue.id] = cue;
+    return map;
+  }, {});
 
   const promises: Promise<string>[] = [];
   const cueIds: string[] = [];
@@ -82,40 +91,46 @@ const run = function(cues: CueType[]): Promise<void> {
     promises.push(cue.run());
     cueIds.push(c.id);
   });
-  return Promise.all(promises).then(results => {
-    // console.log("## results=");
-    // console.log(results);
-    results.forEach((state: string, index: number) => {
-      const stateHash: string = hashToHex(state);
-      const cueId: string = cueIds[index];
-      let cueState: CueStateType = cuesStates[cueId];
-      if (cueState == null) {
-        cueState = {
-          id: cueId,
-          state: stateHash,
-          rawState: state,
-          updatedAt: new Date().getTime()
-        };
-        configstore.set("cues_states." + cueId, cueState);
-        logger.logSuccess(
-          `State of cue #${cueId} initialized. No notifications will be sent at this point, only if further changes are detected.`
-        );
-      } else {
-        const previousStateHash = cueState.state;
-        if (previousStateHash !== stateHash) {
-          console.log(
-            `# State for cue #${cueId} changed! (prev=${cueState.rawState}, new=${state})`
-          );
+  return Promise.all(promises)
+    .then(results => {
+      // console.log("## results=");
+      // console.log(results);
+      const cuesWithChanges: CueType[] = [];
+      results.forEach((state: string, index: number) => {
+        const stateHash: string = hashToHex(state);
+        const cueId: string = cueIds[index];
+        let cueState: CueStateType = cuesStates[cueId];
+        if (cueState == null) {
+          cueState = {
+            id: cueId,
+            state: stateHash,
+            rawState: state,
+            updatedAt: new Date().getTime()
+          };
+          configstore.set("cues_states." + cueId, cueState);
           logger.logSuccess(
-            `State of cue #${cueId} changed. TODO: notifications...`
+            `State of cue #${cueId} initialized. No notifications will be sent at this point, only if further changes are detected.`
           );
         } else {
-          // nop ???
+          const previousStateHash = cueState.state;
+          if (previousStateHash !== stateHash) {
+            console.log(
+              `# State for cue #${cueId} changed! (prev=${cueState.rawState}, new=${state})`
+            );
+            logger.logSuccess(
+              `State of cue #${cueId} changed. TODO: notifications...`
+            );
+            cuesWithChanges.push(cuesMap[cueId]);
+          } else {
+            // nop ???
+          }
         }
-      }
+      });
+      return cuesWithChanges;
+    })
+    .then((cuesWithChanges: CueType[]) => {
+      return sendNotifications(cuesWithChanges);
     });
-    return Promise.resolve();
-  });
 };
 
 export default new Command("cues:run")

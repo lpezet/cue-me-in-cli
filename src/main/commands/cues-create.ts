@@ -13,23 +13,22 @@ const logger = new AdvancedLogger(createLogger("cues:create"));
 type CommandOptions = {
   what: string;
   how: string;
+  name?: string;
 };
 
 export default new Command("cues:create")
   .description("create cue")
+  .option("-n, --name <name>", "friendly name for this cue")
   .requiredOption("-w, --what <what>", "what to monitor")
   .requiredOption("-h, --how <how>", "how to monitor changes")
   .action(function(_me: Command, options: CommandOptions) {
     try {
-      let cues: CueType[] | null = configstore.get("cues");
-      if (cues == null) {
-        cues = [];
-        configstore.set("cues");
-      }
+      const cues: CueType[] = configstore.get("cues") || [];
       const cue: CueType = {
         id: uuidv4(),
         what: options.what,
         how: options.how,
+        name: options.name,
         deleted: false,
         createdAt: new Date().getTime()
       };

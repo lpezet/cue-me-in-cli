@@ -2,7 +2,7 @@ import * as program from "commander";
 import { CLIClient } from "./cliclient";
 import { Command } from "./command";
 import { CueMeInError } from "./error";
-// import * as pkg from "../../package.json";
+import * as pkg from "../../package.json";
 import { loadAll } from "./commands";
 
 import { createLogger } from "./logger";
@@ -44,7 +44,10 @@ const client: CLIClient = {
 export class Main {
   // constructor() {}
   init(): Promise<void> {
-    // program.version(pkg.version).description("For manual, use man cue-me-in");
+    program
+      .version(pkg.version)
+      .description("For manual, use man cue-me-in")
+      .option("--debug", "Set logger to DEBUG level.");
     // .option(
     //  "-l, --log-level [level]",
     //  "Specify log level: emerg (0), alert (1), crit (2), error (3), warning (4), notice (5), info (6), debug (7)"

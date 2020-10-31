@@ -5,8 +5,8 @@ import { Command } from "../command";
 import { configstore } from "../configstore";
 import * as utils from "../utils";
 // const api = require("../api");
-import { logout } from "../core/auth";
-import { api } from "../core/api";
+import { logout } from "../core/auth2";
+// import { api } from "../core/api";
 import { createLogger } from "../logger";
 import { AdvancedLogger } from "../advanced-logger";
 
@@ -19,13 +19,13 @@ export default new Command("logout")
     const tokens = configstore.get("tokens");
     const currentToken = _.get(tokens, "refresh_token");
     const token = utils.getInheritedOption(options, "token") || currentToken;
-    api.setRefreshToken(token);
-    let next: Promise<any>;
-    if (token) {
-      next = logout(token);
-    } else {
-      next = Promise.resolve();
-    }
+    // api.setRefreshToken(token);
+    // let next: Promise<any>;
+    // if (token) {
+    const next = logout();
+    // } else {
+    //  next = Promise.resolve();
+    // }
 
     const cleanup = function(): void {
       if (token || user || tokens) {
