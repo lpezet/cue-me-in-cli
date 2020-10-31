@@ -23,11 +23,7 @@ export default new Command("cues:create")
   .requiredOption("-h, --how <how>", "how to monitor changes")
   .action(function(_me: Command, options: CommandOptions) {
     try {
-      let cues: CueType[] | null = configstore.get("cues");
-      if (cues == null) {
-        cues = [];
-        configstore.set("cues");
-      }
+      const cues: CueType[] = configstore.get("cues") || [];
       const cue: CueType = {
         id: uuidv4(),
         what: options.what,

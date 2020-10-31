@@ -2,7 +2,7 @@ import { Command } from "../command";
 import { configstore } from "../configstore";
 import { createLogger } from "../logger";
 import { AdvancedLogger } from "../advanced-logger";
-import { Tokens, hasValidAccessToken } from "../core/auth2";
+import { Tokens, hasValidAccessToken, refreshAccessToken, validateIdToken } from "../core/auth2";
 import TimeAgo from "javascript-time-ago";
 import * as en from "javascript-time-ago/locale/en";
 
@@ -35,10 +35,18 @@ export default new Command("status")
       }
       if (user && validAccessoken) {
         logger.logLabeledSuccess("Login", "Nice! you're in!");
+        return validateIdToken(tokens.id_token || "");
       } else {
         logger.logLabeledWarning(
           "Login",
           "You'll need to login in order to receive notifications."
+        );
+        logger.logLabeledWarning("Login", "Trying to refresh tokens...");
+        return refreshAccessToken(tokens.refresh_token, tokens.scopes).then(
+          (ts: Tokens) => {
+            logger.info("Got new tokens: ");
+            logger.info(ts);
+          }
         );
       }
     } catch (err) {

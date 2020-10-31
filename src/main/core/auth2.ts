@@ -14,6 +14,7 @@ import { APIResponse, api } from "./api";
 import { createLogger } from "../logger";
 import { AdvancedLogger } from "../advanced-logger";
 import { Spinner } from "cli-spinner";
+import * as jwt from "jsonwebtoken";
 
 const logger = new AdvancedLogger(createLogger("auth"));
 
@@ -212,7 +213,10 @@ const createCallbackServer = (port: number): Promise<UserType | null> => {
             res.write("Ok");
             res.end();
             logger.logBullet("Finalyzing login...please wait...");
-            server.close(() => {
+            server.close((err?: Error) => {
+              if (err) {
+                logger.logBullet("Error finalyzing login. " + err, "error");
+              }
               if (spinner != null) spinner.stop(true);
               resolve(userInfo);
             });
@@ -312,7 +316,38 @@ const logout = function(): Promise<void> {
   });
   */
 };
-
+const validateIdToken = function(token: string): Promise<Boolean> {
+  if (_.isEmpty(token)) return Promise.reject(new Error("Must pass a token."));
+  const pubSite = new URL(api.jwtPublicKeysGoogleApisUrl);
+  return api
+    .request("GET", pubSite.pathname, {
+      origin: "https://" + pubSite.hostname,
+      json: true,
+      logOptions: {
+        skipRequestBody: false,
+        skipQueryParams: false,
+        skipResponseBody: false
+      }
+    })
+    .then((response: APIResponse) => {
+      const kidToPubKeys = response.body;
+      console.log("## kidToPubKeys:");
+      console.log(kidToPubKeys);
+      const getKey: jwt.GetPublicKeyOrSecret = (
+        header: jwt.JwtHeader,
+        callback: jwt.SigningKeyCallback
+      ) => {
+        callback(null, kidToPubKeys[header.kid || ""]);
+      };
+      return new Promise(function(resolve) {
+        jwt.verify(token, getKey, (_err, decoded) => {
+          console.log("Decoded: ");
+          console.log(decoded);
+          resolve(true);
+        });
+      });
+    });
+};
 const hasValidAccessToken = function(authScopes?: string[]): boolean {
   if (_.isEmpty(_lastTokens)) {
     const tokens: Tokens = configstore.get("tokens");
@@ -436,6 +471,7 @@ export {
   getAccessToken,
   hasValidAccessToken,
   refreshAccessToken,
+  validateIdToken,
   User,
   UserTokens,
   UserType,

@@ -10,6 +10,7 @@ import { Scopes } from "./scopes";
 // import * as utils from "../utils";
 import { Url } from "url";
 import { Tokens, getAccessToken as auth2GetAccessToken } from "./auth2";
+import { envOverride } from "../utils";
 
 const logger = createLogger("api");
 
@@ -131,13 +132,29 @@ const _appendQueryData = function(path: string, data: {}): string {
 };
 
 export const api = {
-  firebaseCloudMessagingOrigin: "https://fcm.googleapis.com/v1",
-  firestoreOrigin: "https://firestore.googleapis.com/v1beta1",
-  secureTokenGoogleApisOrigin: "https://securetoken.googleapis.com",
-  webApiKey: "AIzaSyB8OVCjMYelcfFBrLjSwEQak9qDcqyXsLw",
-  projectId: "cue-me-in",
-  clientId:
-    "413727118845-f8dp1btfkm8fudgdbcnecgcc4qldm269.apps.googleusercontent.com",
+  jwtPublicKeysGoogleApisUrl: envOverride(
+    "CUEMEIN_GOOGLEAPIS_PUBKEYS_URL",
+    "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+  ),
+  firebaseFunctionsOrigin: envOverride(
+    "CUEMEIN_FUNCTIONS_ORIG",
+    "https://us-central-1-cue-me-in.cloudfunctions.net"
+  ),
+  // ,
+  // firestoreOrigin: "https://firestore.googleapis.com/v1beta1",
+  secureTokenGoogleApisOrigin: envOverride(
+    "CUEMEIN_GOOGLEAPIS_ORIG",
+    "https://securetoken.googleapis.com"
+  ),
+  webApiKey: envOverride(
+    "CUEMEIN_WEB_API_KEY",
+    "AIzaSyB8OVCjMYelcfFBrLjSwEQak9qDcqyXsLw"
+  ),
+  projectId: envOverride("CUEMEIN_PROJECT_ID", "cue-me-in"),
+  clientId: envOverride(
+    "CUEMEIN_CLIENT_ID",
+    "413727118845-f8dp1btfkm8fudgdbcnecgcc4qldm269.apps.googleusercontent.com"
+  ),
   // "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com",
   // setRefreshToken: function(token: string): void {
   //  refreshToken = token;
@@ -169,6 +186,8 @@ export const api = {
           if (tokens.access_token == null) {
             return Promise.reject(new Error("Couldn't get access token."));
           }
+          // ????
+          // this.setAccessToken(tokens.access_token);
           return Promise.resolve({ access_token: tokens.access_token || "" });
         });
   },
@@ -255,8 +274,10 @@ export const api = {
       const originUrl = url.parse(options.origin);
       secureRequest = originUrl.protocol === "https:";
     }
+    secureRequest = true; // TODO: only dev and locally
 
-    if (options.auth === true) {
+    if (options.auth) {
+      // === true) {
       if (secureRequest) {
         requestFunction = function() {
           return api
