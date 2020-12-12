@@ -1,5 +1,6 @@
 import { Logger } from "./logger";
 import * as clc from "cli-color";
+// import { timeStamp } from "console";
 
 const IS_WINDOWS = process.platform === "win32";
 const SUCCESS_CHAR = IS_WINDOWS ? "+" : "✔";
@@ -20,8 +21,12 @@ type LogLevels =
  */
 export class AdvancedLogger implements Logger {
   logger: Logger;
+  readonly category: string;
   constructor(logger: Logger) {
+    // super();
+    // super(logger.category);
     this.logger = logger;
+    this.category = logger.category;
   }
 
   /**

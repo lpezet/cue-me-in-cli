@@ -10,8 +10,8 @@ import { default as LogoutCmd } from "./logout";
 import { default as CuesCreateCmd } from "./cues-create";
 import { default as CuesDeleteCmd } from "./cues-delete";
 import { default as CuesListCmd } from "./cues-list";
-import { default as CuesRunCmd } from "./cues-run";
-import { default as TestsNotificationCmd } from "./tests-notification";
+// import { default as CuesRunCmd } from "./cues-run";
+// import { default as TestsNotificationCmd } from "./tests-notification";
 import {
   Install as CronInstallCmd,
   Uninstall as CronUninstallCmd
@@ -59,11 +59,13 @@ export async function loadAll(client: CLIClient): Promise<any> {
     .then(reg(CuesCreateCmd))
     .then(reg(CuesDeleteCmd))
     .then(reg(CuesListCmd))
-    .then(reg(CuesRunCmd))
-    .then(reg(CronInstallCmd))
-    .then(reg(CronUninstallCmd))
     .then(reg(StatusCmd))
-    .then(reg(TestsNotificationCmd));
+    .then(reg(CronInstallCmd))
+    .then(reg(CronUninstallCmd));
+  /*
+  .then(reg(CuesRunCmd))
+  .then(reg(TestsNotificationCmd));
+  */
 }
 
 /**
