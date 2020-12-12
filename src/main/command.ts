@@ -139,7 +139,9 @@ export class Command {
    */
   register(client: CLIClient): void {
     if (this.logger.isDebugEnabled()) {
-      this.logger.debug(`# command [${this.name}]: registering cmd...`);
+      this.logger.debug(
+        `# command [${this.name}, ${this.cmd}]: registering cmd...`
+      );
     }
     this.client = client;
     const program = client.cli;
@@ -187,7 +189,7 @@ export class Command {
         client.errorOut(
           new CueMeInError(
             `Too many arguments. Run ${bold(
-              "firebase help " + this.name
+              "cue-me-in help " + this.name
             )} for usage instructions`,
             { exit: 1 }
           )
