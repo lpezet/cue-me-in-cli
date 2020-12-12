@@ -2,7 +2,12 @@ import { Command } from "../command";
 import { configstore } from "../configstore";
 import { createLogger } from "../logger";
 import { AdvancedLogger } from "../advanced-logger";
-import { Tokens, hasValidAccessToken, refreshAccessToken, validateIdToken } from "../core/auth2";
+import {
+  Tokens,
+  hasValidAccessToken,
+  refreshAccessToken,
+  validateIdToken
+} from "../core/auth2";
 import TimeAgo from "javascript-time-ago";
 import * as en from "javascript-time-ago/locale/en";
 
