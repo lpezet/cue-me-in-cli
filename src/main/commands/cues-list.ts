@@ -1,9 +1,10 @@
 import { Command } from "../command";
 // import * as clc from "cli-color";
 import { createLogger } from "../logger";
-import { configstore } from "../configstore";
-import { CueStateMapType, CueStateType, CueType } from "./cues";
+// import { configstore } from "../configstore";
+// import { CueStateMapType, CueStateType, CueType } from "./cues";
 import { AdvancedLogger } from "../advanced-logger";
+import { APIResponse, api } from "../core/api";
 
 const logger = new AdvancedLogger(createLogger("cues:list"));
 
@@ -13,34 +14,39 @@ type CommandOptions = {
   state?: boolean;
 };
 
-type CueWithStateType = CueType & { state: CueStateType };
+// type CueWithStateType = CueType & { state: CueStateType };
 
 export default new Command("cues:list")
   .description("list cues")
   .option("-s, --state", "display state of cues")
-  .action(function(_me: Command, options: CommandOptions) {
+  .action(function(_me: Command, _options: CommandOptions) {
+    logger.info("Getting cues...");
     try {
-      const cues: CueType[] = configstore.get("cues") || [];
-      let results: any;
-      if (options.state) {
-        const cuesStates: CueStateMapType = configstore.get("cues_states");
-        const cuesWithState: CueWithStateType[] = [];
-        cues.forEach((c: CueType) => {
-          const cws: CueWithStateType = {
-            ...c,
-            state: cuesStates[c.id]
-          };
-          cuesWithState.push(cws);
+      return api
+        .request("GET", "/api/cues", {
+          origin: api.firebaseFunctionsOrigin,
+          json: true,
+          auth: {},
+          logOptions: {
+            skipQueryParams: false,
+            skipRequestBody: false,
+            skipResponseBody: false
+          }
+        })
+        .then(
+          (response: APIResponse) => {
+            console.log("Got response!");
+            console.dir(response);
+          },
+          (err: Error) => {
+            logger.error("Error listing cues.", err);
+          }
+        )
+        .catch((err: Error) => {
+          logger.error("(2) Unexpected error listing cues.", err);
         });
-        results = cuesWithState;
-      } else {
-        results = cues;
-      }
-      logger.logBullet("Cues:");
-      logger.info(results);
-    } catch (err) {
-      logger.error(err);
-      console.log(err);
+    } catch (e) {
+      logger.error("(1) Unexpected error listing cues.", e);
+      return Promise.reject(e);
     }
-    return Promise.resolve();
   });
